@@ -8,8 +8,8 @@ if "%debug%"=="1" set "config=debug"
 if "%dist%"=="1" set "config=dist"
 
 set "deps_dir=%~dp0tmp\deps\"
-set "tmp=%~dp0tmp\%config%\"
 set "out=%~dp0out\%config%\"
+set "tmp=%~dp0out\tmp\%config%\"
 set "src=%~dp0src"
 
 call :SetupDeps || (echo Failed to setup dependencies. && exit /b 1)
