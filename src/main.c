@@ -4,6 +4,8 @@
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_opengl_glext.h>
 
+#define INI_IMPLEMENTATION
+#include "ini.h"
 #include "libretro.h"
 
 #define OPENGL_EXT_API_LIST \
@@ -27,6 +29,12 @@
     _X(PFNGLFRAMEBUFFERTEXTURE2DPROC,    glFramebufferTexture2D) \
     _X(PFNGLCHECKFRAMEBUFFERSTATUSPROC,  glCheckFramebufferStatus) \
 
+typedef struct JoypadInputBinding JoypadInputBinding;
+struct JoypadInputBinding {
+    SDL_Keycode keyboard_key;
+    int joypad_key;
+};
+
 static struct {
     SDL_Window *window;
     bool is_fullscreen;
@@ -48,12 +56,31 @@ static struct {
     int current_width, current_height;
 } g_core;
 
+static struct {
+    bool ok;
+    ini_t ini;
+    struct {
+        char game[256];
+        char core[256];
+    } general;
+    struct {
+        char save[256];
+        char system[256];
+    } dirs;
+    JoypadInputBinding bindings[16];
+    struct {
+        struct retro_variable *array;
+        int count;
+    } vars;
+} g_profile;
+
 #define _X(_T, _n) _T _n;
 OPENGL_EXT_API_LIST
 #undef _X
 
 bool ConfigureOpenGL(SDL_GLProfile profile, int version_major, int version_minor, int max_width, int max_height);
 void UpdateVboLetterboxed(int render_width, int render_height, int max_render_width, int max_render_height, int window_width, int window_height);
+bool LoadProfile(const char *path);
 
 SDL_AppResult SDL_AppInit(void **userdata, int argc, char **argv)
 {
@@ -76,6 +103,12 @@ SDL_AppResult SDL_AppInit(void **userdata, int argc, char **argv)
         g_core.avinfo.geometry.max_width,
         g_core.avinfo.geometry.max_height
     );
+
+    if (argc == 2 && !LoadProfile(argv[1]))
+    {
+        // show message box
+        return SDL_APP_FAILURE;
+    }
 
     return SDL_APP_CONTINUE;
 }
@@ -273,4 +306,34 @@ void UpdateVboLetterboxed(int render_width, int render_height, int max_render_wi
     glBindBuffer(GL_ARRAY_BUFFER, g_gfx.vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STREAM_DRAW);
     SDL_assert_release(!glGetError());
+}
+
+bool LoadProfile(const char *path)
+{
+    ini_free(&g_profile.ini);
+    SDL_memset(&g_profile, 0, sizeof(g_profile));
+
+    g_profile.ini = ini_parse(path, &(iniopts_t){ .merge_duplicate_tables = true, .override_duplicate_keys = true });
+    if (!ini_is_valid(&g_profile.ini))
+    {
+        SDL_Log("failed to load profile \"%s\"", path);
+        return false;
+    }
+
+    initable_t *general = ini_get_table(&g_profile.ini, "general");
+    int l = ini_to_str(ini_get(general, "game"), g_profile.general.game, sizeof(g_profile.general.game), false);
+    if (l < 0)
+    {
+        SDL_Log("Missing field \"general.game\"");
+        goto Failure;
+    }
+    SDL_Log("game=\"%s\"", g_profile.general.game);
+
+    g_profile.ok = true;
+    return g_profile.ok;
+
+    Failure:
+    ini_free(&g_profile.ini);
+    SDL_memset(&g_profile, 0, sizeof(g_profile));
+    return false;
 }
