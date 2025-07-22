@@ -59,19 +59,6 @@ static struct {
 static struct {
     bool ok;
     ini_t ini;
-    struct {
-        char game[256];
-        char core[256];
-    } general;
-    struct {
-        char save[256];
-        char system[256];
-    } dirs;
-    JoypadInputBinding bindings[16];
-    struct {
-        struct retro_variable *array;
-        int count;
-    } vars;
 } g_profile;
 
 #define _X(_T, _n) _T _n;
@@ -320,14 +307,7 @@ bool LoadProfile(const char *path)
         return false;
     }
 
-    initable_t *general = ini_get_table(&g_profile.ini, "general");
-    int l = ini_to_str(ini_get(general, "game"), g_profile.general.game, sizeof(g_profile.general.game), false);
-    if (l < 0)
-    {
-        SDL_Log("Missing field \"general.game\"");
-        goto Failure;
-    }
-    SDL_Log("game=\"%s\"", g_profile.general.game);
+    SDL_Log("loaded profile \"%s\"", path);
 
     g_profile.ok = true;
     return g_profile.ok;
