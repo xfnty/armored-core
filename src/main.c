@@ -1,11 +1,7 @@
 #define SDL_MAIN_USE_CALLBACKS
-#include <SDL3/SDL_log.h>
-#include <SDL3/SDL_init.h>
+#include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <SDL3/SDL_video.h>
-#include <SDL3/SDL_assert.h>
 #include <SDL3/SDL_opengl.h>
-#include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_opengl_glext.h>
 
 #include "libretro.h"
@@ -33,6 +29,7 @@
 
 static struct {
     SDL_Window *window;
+    bool is_fullscreen;
 } g_app;
 
 static struct {
@@ -119,9 +116,18 @@ SDL_AppResult SDL_AppIterate(void *userdata)
 
 SDL_AppResult SDL_AppEvent(void *userdata, SDL_Event *event)
 {
-    if (event->type == SDL_EVENT_QUIT)
+    switch (event->type)
     {
+    case SDL_EVENT_QUIT:
         return SDL_APP_SUCCESS;
+
+    case SDL_EVENT_KEY_DOWN:
+        if (!event->key.repeat && event->key.key == SDLK_F11)
+        {
+            g_app.is_fullscreen = !g_app.is_fullscreen;
+            SDL_SetWindowFullscreen(g_app.window, g_app.is_fullscreen);
+        }
+        break;
     }
 
     return SDL_APP_CONTINUE;
