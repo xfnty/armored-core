@@ -7,7 +7,7 @@ if "%debug%"=="1" if "%dist%"=="1" (echo Can not build both "debug" and "dist" a
 if "%debug%"=="1" set "config=debug"
 if "%dist%"=="1" set "config=dist"
 
-set "deps_dir=%~dp0tmp\deps\"
+set "deps_dir=%~dp0out\tmp\deps\"
 set "out=%~dp0out\%config%\"
 set "tmp=%~dp0out\tmp\%config%\"
 set "src=%~dp0src"

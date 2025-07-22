@@ -8,6 +8,8 @@
 #include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_opengl_glext.h>
 
+#include "libretro.h"
+
 #define OPENGL_EXT_API_LIST \
     _X(PFNGLGENVERTEXARRAYSPROC,         glGenVertexArrays) \
     _X(PFNGLBINDVERTEXARRAYPROC,         glBindVertexArray) \
@@ -34,6 +36,7 @@ static struct {
 } g_app;
 
 static struct {
+    bool initialized;
     SDL_GLContext ctx;
     GLuint vbo;
     GLuint vao;
@@ -43,40 +46,65 @@ static struct {
 } g_gfx;
 
 static struct {
-    int width, height;
+    struct retro_system_info    info;
+    struct retro_system_av_info avinfo;
+    int current_width, current_height;
 } g_core;
 
 #define _X(_T, _n) _T _n;
 OPENGL_EXT_API_LIST
 #undef _X
 
-bool InitOpenGL(SDL_GLProfile profile, int version_major, int version_minor, int max_width, int max_height);
+bool ConfigureOpenGL(SDL_GLProfile profile, int version_major, int version_minor, int max_width, int max_height);
+void UpdateVboLetterboxed(int render_width, int render_height, int max_render_width, int max_render_height, int window_width, int window_height);
 
 SDL_AppResult SDL_AppInit(void **userdata, int argc, char **argv)
 {
     SDL_SetAppMetadata("Emulator", "0.1.0", "com.xfnty.libretro-frontend");
 
     SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
-    g_app.window = SDL_CreateWindow("Emulator", 500, 500, SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+    g_app.window = SDL_CreateWindow("Emulator", 640, 360, SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
     SDL_assert_release(g_app.window);
     SDL_ShowWindow(g_app.window);
 
-    InitOpenGL(SDL_GL_CONTEXT_PROFILE_CORE, 3, 3, 1024, 512);
+    g_core.avinfo.geometry.max_width = 1024;
+    g_core.avinfo.geometry.max_height = 512;
+    g_core.current_width = 1024;
+    g_core.current_height = 512;
+
+    ConfigureOpenGL(
+        SDL_GL_CONTEXT_PROFILE_CORE,
+        3,
+        3,
+        g_core.avinfo.geometry.max_width,
+        g_core.avinfo.geometry.max_height
+    );
 
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppIterate(void *userdata)
 {
-    SDL_GetWindowSize(g_app.window, &g_core.width, &g_core.height);
-
     glBindFramebuffer(GL_FRAMEBUFFER, g_gfx.fbo);
-    glViewport(0, 0, g_core.width, g_core.height);
+    glViewport(0, 0, g_core.current_width, g_core.current_height);
     glClearColor(1, 1, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT);
     // retro_run();
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    int window_width, window_height;
+    SDL_GetWindowSize(g_app.window, &window_width, &window_height);
+    glViewport(0, 0, window_width, window_height);
+    UpdateVboLetterboxed(
+        g_core.current_width,
+        g_core.current_height,
+        g_core.avinfo.geometry.max_width,
+        g_core.avinfo.geometry.max_height,
+        window_width,
+        window_height
+    );
+
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
     glBindBuffer(GL_ARRAY_BUFFER, g_gfx.vbo);
@@ -99,12 +127,16 @@ SDL_AppResult SDL_AppEvent(void *userdata, SDL_Event *event)
     return SDL_APP_CONTINUE;
 }
 
-void SDL_AppQuit(void *userdata, SDL_AppResult result)
-{
-}
+void SDL_AppQuit(void *userdata, SDL_AppResult result) {}
 
-bool InitOpenGL(SDL_GLProfile profile, int version_major, int version_minor, int max_width, int max_height)
+bool ConfigureOpenGL(SDL_GLProfile profile, int version_major, int version_minor, int max_width, int max_height)
 {
+    if (g_gfx.initialized)
+    {
+        SDL_GL_DestroyContext(g_gfx.ctx);
+        SDL_memset(&g_gfx, 0, sizeof(g_gfx));
+    }
+
     bool ok = true;
 
     ok &= SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profile);
@@ -125,17 +157,6 @@ bool InitOpenGL(SDL_GLProfile profile, int version_major, int version_minor, int
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 2, GL_FLOAT, 0, sizeof(float) * 4, (void*)(sizeof(float) * 2));
     glEnableVertexAttribArray(1);
-    ok &= !glGetError();
-
-    float verts[] = {
-        -1,  1, 0, 1,
-         1,  1, 1, 1, 
-         1, -1, 1, 0, 
-        -1,  1, 0, 1,
-         1, -1, 1, 0, 
-        -1, -1, 0, 0, 
-    };
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
     ok &= !glGetError();
 
     GLuint vs = glCreateShader(GL_VERTEX_SHADER);
@@ -200,5 +221,50 @@ bool InitOpenGL(SDL_GLProfile profile, int version_major, int version_minor, int
         );
     }
 
+    g_gfx.initialized = ok;
     return ok;
+}
+
+void UpdateVboLetterboxed(int render_width, int render_height, int max_render_width, int max_render_height, int window_width, int window_height)
+{
+    SDL_assert_release(g_gfx.initialized);
+
+    float wr = window_width / (float)window_height;
+    float rr = render_width / (float)render_height;
+
+    float x, y, w, h;
+    if (wr > rr)
+    {
+        w = window_height * rr;
+        h = window_height;
+        x = (window_width - w) / 2;
+        y = 0;
+    }
+    else
+    {
+        w = window_width;
+        h = window_width / rr;
+        x = 0;
+        y = (window_height - h) / 2;
+    }
+
+    float u = render_width / (float)max_render_width;
+    float v = render_height / (float)max_render_height;
+
+    float l = x / window_width * 2 - 1;
+    float t = 1 - y / window_height * 2;
+    float r = l + w / window_width * 2;
+    float b = t - h / window_height * 2;
+
+    float verts[] = {
+        l, t, 0, v,
+        r, t, u, v,
+        r, b, u, 0, 
+        l, t, 0, v,
+        r, b, u, 0,
+        l, b, u, 0,
+    };
+    glBindBuffer(GL_ARRAY_BUFFER, g_gfx.vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STREAM_DRAW);
+    SDL_assert_release(!glGetError());
 }
