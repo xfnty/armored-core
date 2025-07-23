@@ -235,6 +235,7 @@ static int strv__cmp(inistrv_t a, inistrv_t b);
 ini_t ini_parse(const char *filename, const iniopts_t *options) {
     if (!filename) return (ini_t){0};
     FILE *fp = fopen(filename, "rb");
+    if (!fp) return (ini_t){0};
     size_t filelen = 0;
     char *file_data = ini__read_whole_file(fp, &filelen);
     fclose(fp);

@@ -34,7 +34,6 @@ if "%config%"=="debug" set "cflags=/Z7 /Ob2"
 if "%config%"=="debug" set "lflags=/debug"
 cl.exe /nologo /options:strict /std:c11 /Oi- /GS- /fp:fast !cflags! /I %src%. /I %deps_dir%sdl\SDL3-3.2.18\include %tmp%unity.c %deps_dir%sdl\SDL3-3.2.18\lib\x64\SDL3.lib opengl32.lib /Fe:%out%emu.exe /Fo:%tmp%unity.obj /link /subsystem:console !lflags! || exit /b 1
 xcopy /y %deps_dir%sdl\SDL3-3.2.18\lib\x64\SDL3.dll %out% 1> nul
-xcopy /y %~dp0data %out% 1> nul
 exit /b 0
 
 :Run
