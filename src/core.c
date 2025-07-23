@@ -135,6 +135,12 @@ float Core_GetRenderHeight(void)
     return g_core.current_height;
 }
 
+float Core_GetTargetFPS(void)
+{
+    SDL_assert_release(g_core.initialized);
+    return g_core.avinfo.timing.fps;
+}
+
 retro_proc_address_t Core_GlGetProcAddress(const char *sym)
 {
     SDL_assert_release(g_core.initialized);

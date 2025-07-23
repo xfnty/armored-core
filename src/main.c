@@ -1,6 +1,7 @@
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_opengl_glext.h>
@@ -11,6 +12,7 @@
 
 static struct {
     SDL_Window *window;
+    Uint64 prev_frame_time, target_frame_time;
 } g_app;
 
 static bool ApplyProfile(void);
@@ -39,6 +41,8 @@ SDL_AppResult SDL_AppInit(void **userdata, int argc, char **argv)
     if (!Core_Load(Profile_GetCorePath()) || !Core_LoadGame(Profile_GetGamePath()))
         return SDL_APP_FAILURE;
 
+    g_app.target_frame_time = (1 / Core_GetTargetFPS()) * 1000000000;
+
     SDL_ShowWindow(g_app.window);
     return SDL_APP_CONTINUE;
 }
@@ -47,6 +51,13 @@ SDL_AppResult SDL_AppIterate(void *userdata)
 {
     Core_RunFrame();
     Gl_Present(Core_GetRenderWidth(), Core_GetRenderHeight());
+
+    Uint64 time = SDL_GetTicksNS();
+    Uint64 frame_time = time - g_app.prev_frame_time;
+    g_app.prev_frame_time = time;
+    if (frame_time < g_app.target_frame_time)
+        SDL_DelayNS(g_app.target_frame_time - frame_time);
+
     return SDL_APP_CONTINUE;
 }
 

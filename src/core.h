@@ -10,3 +10,4 @@ void Core_RunFrame(void);
 
 float Core_GetRenderWidth(void);
 float Core_GetRenderHeight(void);
+float Core_GetTargetFPS(void);
