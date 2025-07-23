@@ -5,6 +5,7 @@
 #include <SDL3/SDL_opengl_glext.h>
 
 #include "gl.h"
+#include "profile.h"
 
 static struct {
     SDL_Window *window;
@@ -22,6 +23,14 @@ SDL_AppResult SDL_AppInit(void **userdata, int argc, char **argv)
 
     Gl_Init(g_app.window);
     Gl_Configure(SDL_GL_CONTEXT_PROFILE_CORE, 3, 0, 1024, 512);
+
+    if (argc == 2 && !Profile_Load(argv[1]))
+    {
+        SDL_Log("Failed to load profile \"%s\"", argv[1]);
+        return SDL_APP_FAILURE;
+    }
+
+    SDL_Log("core=\"%s\"", Profile_GetCorePath());
 
     return SDL_APP_CONTINUE;
 }
