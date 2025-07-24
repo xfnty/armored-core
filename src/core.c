@@ -1,6 +1,7 @@
 #include "core.h"
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_audio.h>
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_loadso.h>
 #include <SDL3/SDL_stdinc.h>
@@ -38,6 +39,7 @@
 
 static struct {
     bool initialized;
+    SDL_AudioStream *audio;
     SDL_SharedObject *so;
     struct retro_system_info info;
     struct retro_system_av_info avinfo;
@@ -88,12 +90,26 @@ bool Core_Load(const char *path)
 
     g_core.api.retro_get_system_av_info(&g_core.avinfo);
 
+    g_core.audio = SDL_OpenAudioDeviceStream(
+        SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+        &(SDL_AudioSpec){
+            .format = SDL_AUDIO_S16LE,
+            .channels = 2,
+            .freq = g_core.avinfo.timing.sample_rate,
+        },
+        0,
+        0
+    );
+    if (!g_core.audio) return false;
+    SDL_ResumeAudioStreamDevice(g_core.audio);
+
     SDL_Log(
-        "loaded core %s (%.0f FPS, %dx%d)",
+        "loaded core %s (%.0f FPS, %dx%d, %.0f Hz)",
         g_core.info.library_name,
         g_core.avinfo.timing.fps,
         g_core.avinfo.geometry.max_width,
-        g_core.avinfo.geometry.max_height
+        g_core.avinfo.geometry.max_height,
+        g_core.avinfo.timing.sample_rate
     );
     return SDL_ClearError();
 }
@@ -113,6 +129,7 @@ void Core_Free(void)
     g_core.api.retro_unload_game();
     g_core.api.retro_deinit();
     SDL_UnloadObject(g_core.so);
+    SDL_DestroyAudioStream(g_core.audio);
     SDL_memset(&g_core, 0, sizeof(g_core));
     SDL_ClearError();
 }
@@ -121,6 +138,7 @@ void Core_RunFrame(void)
 {
     SDL_assert_release(g_core.initialized);
     g_core.api.retro_run();
+    SDL_FlushAudioStream(g_core.audio);
 }
 
 float Core_GetRenderWidth(void)
@@ -224,11 +242,14 @@ void Core_VideoCb(const void *data, unsigned width, unsigned height, size_t pitc
 void Core_AudioSampleCb(int16_t left, int16_t right)
 {
     SDL_assert_release(g_core.initialized);
+    int16_t buf[] = { left, right };
+    SDL_PutAudioStreamData(g_core.audio, buf, sizeof(buf));
 }
 
 size_t Core_AudioBatchCb(const int16_t *data, size_t frames)
 {
     SDL_assert_release(g_core.initialized);
+    SDL_PutAudioStreamData(g_core.audio, data, frames * sizeof(int16_t) * 2);
     return frames;
 }
 

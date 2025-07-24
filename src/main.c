@@ -10,9 +10,14 @@
 #include "core.h"
 #include "profile.h"
 
+#define FPS_DISPLAY_UPDATE_INTERVAL 0.5f
+
 static struct {
     SDL_Window *window;
-    Uint64 prev_frame_time, target_frame_time;
+    Uint64 last_frame_tick;
+    Uint64 frame_time_acc;
+    Uint64 frame_acc_count;
+    Uint64 last_fps_update_time;
 } g_app;
 
 static bool ApplyProfile(void);
@@ -30,7 +35,7 @@ SDL_AppResult SDL_AppInit(void **userdata, int argc, char **argv)
     if (!Profile_Load(argv[1]))
         return SDL_APP_FAILURE;
 
-    SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+    SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
 
     SDL_WindowFlags wflags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL;
     if (Profile_IsFullscreen()) wflags |= SDL_WINDOW_FULLSCREEN;
@@ -41,22 +46,32 @@ SDL_AppResult SDL_AppInit(void **userdata, int argc, char **argv)
     if (!Core_Load(Profile_GetCorePath()) || !Core_LoadGame(Profile_GetGamePath()))
         return SDL_APP_FAILURE;
 
-    g_app.target_frame_time = (1 / Core_GetTargetFPS()) * 1000000000;
-
     SDL_ShowWindow(g_app.window);
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppIterate(void *userdata)
 {
-    Core_RunFrame();
-    Gl_Present(Core_GetRenderWidth(), Core_GetRenderHeight());
+    Uint64 tick = SDL_GetTicks();
+    if ((tick - g_app.last_frame_tick) / 1000.0 >= 1 / Core_GetTargetFPS())
+    {
+        Core_RunFrame();
+        Gl_Present(Core_GetRenderWidth(), Core_GetRenderHeight());
+        g_app.last_frame_tick = tick;
+        g_app.frame_time_acc += SDL_GetTicks() - tick;
+        g_app.frame_acc_count++;
+    }
 
-    Uint64 time = SDL_GetTicksNS();
-    Uint64 frame_time = time - g_app.prev_frame_time;
-    g_app.prev_frame_time = time;
-    if (frame_time < g_app.target_frame_time)
-        SDL_DelayNS(g_app.target_frame_time - frame_time);
+    if (tick - g_app.last_fps_update_time > FPS_DISPLAY_UPDATE_INTERVAL * 1000)
+    {
+        float ms = g_app.frame_time_acc / (float)g_app.frame_acc_count;
+        char b[128];
+        SDL_snprintf(b, sizeof(b), "%.0f ms (%d FPS)", ms, (int)(1.0f / (ms / 1000.0f)));
+        SDL_SetWindowTitle(g_app.window, b);
+        g_app.last_fps_update_time = tick;
+        g_app.frame_time_acc = 0;
+        g_app.frame_acc_count = 0;
+    }
 
     return SDL_APP_CONTINUE;
 }
