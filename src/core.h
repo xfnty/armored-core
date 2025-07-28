@@ -10,6 +10,8 @@ enum core_mouse_hack_t {
 
 bool Core_Load(const char *path);
 bool Core_LoadGame(const char *path);
+bool Core_LoadState(const char *path);
+bool Core_SaveState(const char *path);
 void Core_Free(void);
 
 void Core_RunFrame(void);

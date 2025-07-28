@@ -11,6 +11,7 @@ const char       *Profile_GetCorePath(void);
 const char       *Profile_GetGamePath(void);
 const char       *Profile_GetSavePath(void);
 const char       *Profile_GetSystemPath(void);
+const char       *Profile_GetAutosavePath(void);
 bool              Profile_IsFullscreen(void);
 float             Profile_GetMouseSensitivityX(void);
 float             Profile_GetMouseSensitivityY(void);

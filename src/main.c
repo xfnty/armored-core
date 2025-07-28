@@ -46,11 +46,12 @@ SDL_AppResult SDL_AppInit(void **userdata, int argc, char **argv)
     if (!Core_Load(Profile_GetCorePath()) || !Core_LoadGame(Profile_GetGamePath()))
         return SDL_APP_FAILURE;
 
-    Core_SetMouseHackProfile(Profile_GetMouseHackProfile());
+    Core_LoadState(Profile_GetAutosavePath());
 
-    SDL_ShowWindow(g_app.window);
+    Core_SetMouseHackProfile(Profile_GetMouseHackProfile());
     SDL_SetWindowRelativeMouseMode(g_app.window, true);
 
+    SDL_ShowWindow(g_app.window);
     return SDL_APP_CONTINUE;
 }
 
@@ -156,7 +157,12 @@ SDL_AppResult SDL_AppEvent(void *userdata, SDL_Event *event)
 
 void SDL_AppQuit(void *userdata, SDL_AppResult result)
 {
-    if (result == SDL_APP_FAILURE)
-        SDL_Log("%s", SDL_GetError());
+    Core_SaveState(Profile_GetAutosavePath());
     Core_Free();
+    
+    if (result == SDL_APP_FAILURE)
+    {
+        SDL_Log("%s", SDL_GetError());
+        while (1);
+    }
 }

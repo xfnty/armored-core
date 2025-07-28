@@ -123,6 +123,51 @@ bool Core_LoadGame(const char *path)
     return g_core.api.retro_load_game(&info);
 }
 
+bool Core_LoadState(const char *path)
+{
+    void *s = 0;
+    size_t ss = 0;
+    if (!(s = SDL_LoadFile(path, &ss)))
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to read save file");
+        return false;
+    }
+    
+    if (!g_core.api.retro_unserialize(s, ss))
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "retro_unserialize() failed");
+        SDL_free(s);
+        return false;
+    }
+
+    SDL_Log("Loaded save");
+    SDL_free(s);
+    return true;
+}
+
+bool Core_SaveState(const char *path)
+{
+    size_t size = g_core.api.retro_serialize_size();
+    void *data = SDL_malloc(size);
+
+    if (!g_core.api.retro_serialize(data, size))
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "retro_serialize() failed");
+        SDL_free(data);
+        return false;
+    }
+    else if (!SDL_SaveFile(path, data, size))
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to write save state");
+        SDL_free(data);
+        return false;
+    }
+
+    SDL_Log("Saved state to \"%s\"", path);
+    SDL_free(data);
+    return true;
+}
+
 void Core_Free(void)
 {
     if (!g_core.initialized)
@@ -186,7 +231,6 @@ void Core_SetMouseMove(float rx, float ry)
     {
         *(uint16_t*)(core_memory + 0x1A26CA) -= rx;
         *(uint16_t*)(core_memory + 0x411C0) += ry;
-        // SDL_Log("%u %u", *(uint16_t*)(core_memory + 0x1A26CA), *(uint16_t*)(core_memory + 0x411C0));
     }
     else if (g_core.mouse_hack_profile == CORE_MOUSE_HACK_AC_PROJECT_PHANTASMA)
     {

@@ -12,6 +12,7 @@ static struct {
     char core[256];
     char game[256];
     char save[256];
+    char autosave[256];
     char system[256];
     bool fullscreen;
     float mouse_sensitivity_x;
@@ -44,9 +45,10 @@ bool Profile_Load(const char *path)
     if (!ini_to_str(ini_get(general, "core"), g_profile.core, sizeof(g_profile.core), false)) return SDL_SetError("missing field \"general.core\" in profile \"%s\"", path);
     if (!ini_to_str(ini_get(general, "game"), g_profile.game, sizeof(g_profile.game), false)) return SDL_SetError("missing field \"general.game\" in profile \"%s\"", path);
 
-    initable_t *dirs = ini_get_table(&g_profile.ini, "dirs");
-    if (!ini_to_str(ini_get(dirs, "save"), g_profile.save, sizeof(g_profile.save), false)) return SDL_SetError("missing field \"dirs.save\" in profile \"%s\"", path);
-    if (!ini_to_str(ini_get(dirs, "system"), g_profile.system, sizeof(g_profile.system), false)) return SDL_SetError("missing field \"dirs.system\" in profile \"%s\"", path);
+    initable_t *paths = ini_get_table(&g_profile.ini, "paths");
+    if (!ini_to_str(ini_get(paths, "save"), g_profile.save, sizeof(g_profile.save), false)) return SDL_SetError("missing field \"paths.save\" in profile \"%s\"", path);
+    if (!ini_to_str(ini_get(paths, "system"), g_profile.system, sizeof(g_profile.system), false)) return SDL_SetError("missing field \"paths.system\" in profile \"%s\"", path);
+    if (!ini_to_str(ini_get(paths, "autosave"), g_profile.autosave, sizeof(g_profile.autosave), false)) return SDL_SetError("missing field \"paths.autosave\" in profile \"%s\"", path);
 
     initable_t *input = ini_get_table(&g_profile.ini, "input");
     if (!(g_profile.mouse_sensitivity_x = ini_as_num(ini_get(input, "mouse_sensitivity_x")))) return SDL_SetError("missing or zeroed field \"input.mouse_sensitivity_x\" in profile \"%s\"", path);
@@ -100,6 +102,12 @@ const char *Profile_GetSystemPath(void)
 {
     SDL_assert_release(ini_is_valid(&g_profile.ini));
     return g_profile.system;
+}
+
+const char *Profile_GetAutosavePath(void)
+{
+    SDL_assert_release(ini_is_valid(&g_profile.ini));
+    return g_profile.autosave;
 }
 
 bool Profile_IsFullscreen(void)
