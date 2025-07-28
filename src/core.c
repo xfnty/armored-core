@@ -54,6 +54,8 @@ static struct {
         char system[256];
     } paths;
     float current_width, current_height;
+    int16_t inputs[16];
+    core_mouse_hack_t mouse_hack_profile;
 } g_core;
 
 static retro_proc_address_t Core_GlGetProcAddress(const char *sym);
@@ -159,6 +161,47 @@ float Core_GetTargetFPS(void)
     return g_core.avinfo.timing.fps;
 }
 
+void Core_SetJoypadAxis(uint8_t axis, int16_t value)
+{
+    SDL_assert_release(axis < SDL_arraysize(g_core.inputs));
+    g_core.inputs[axis] = value;
+}
+
+void Core_SetMouseHackProfile(core_mouse_hack_t profile)
+{
+    g_core.mouse_hack_profile = profile;
+    SDL_Log("Using mouse hack %d", profile);
+}
+
+void Core_SetMouseMove(float rx, float ry)
+{
+    SDL_assert_release(g_core.initialized);
+
+    size_t core_memory_size;
+    uint8_t *core_memory;
+    SDL_assert_release(core_memory_size = g_core.api.retro_get_memory_size(RETRO_MEMORY_SYSTEM_RAM));
+    SDL_assert_release(core_memory = g_core.api.retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM));
+
+    if (g_core.mouse_hack_profile == CORE_MOUSE_HACK_AC1)
+    {
+        *(uint16_t*)(core_memory + 0x1A26CA) -= rx;
+        *(uint16_t*)(core_memory + 0x411C0) += ry;
+        // SDL_Log("%u %u", *(uint16_t*)(core_memory + 0x1A26CA), *(uint16_t*)(core_memory + 0x411C0));
+    }
+    else if (g_core.mouse_hack_profile == CORE_MOUSE_HACK_AC_PROJECT_PHANTASMA)
+    {
+        if (*(uint32_t*)(core_memory + 0x1D1D20) == 0x801D1CC8)
+        {
+            *(uint16_t*)(core_memory + 0x1D1D32) -= rx;
+        }
+        else
+        {
+            *(uint16_t*)(core_memory + 0x1E2DF2) -= rx;
+        }
+        *(uint16_t*)(core_memory + 0x42708) += ry;
+    }
+}
+
 retro_proc_address_t Core_GlGetProcAddress(const char *sym)
 {
     SDL_assert_release(g_core.initialized);
@@ -255,11 +298,12 @@ size_t Core_AudioBatchCb(const int16_t *data, size_t frames)
 
 void Core_InputPollCb(void)
 {
-    SDL_assert_release(g_core.initialized);
 }
 
 int16_t Core_InputStateCb(unsigned port, unsigned device, unsigned index, unsigned id)
 {
     SDL_assert_release(g_core.initialized);
-    return 0;
+    if (port != 0 || device != RETRO_DEVICE_JOYPAD || index != 0 || id >= SDL_arraysize(g_core.inputs))
+        return 0;
+    return g_core.inputs[id];
 }

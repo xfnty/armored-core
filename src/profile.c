@@ -1,9 +1,11 @@
 #include "profile.h"
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_keycode.h>
 
 #define INI_IMPLEMENTATION
 #include "ini.h"
+#include "libretro.h"
 
 static struct {
     ini_t ini;
@@ -12,6 +14,9 @@ static struct {
     char save[256];
     char system[256];
     bool fullscreen;
+    float mouse_sensitivity_x;
+    float mouse_sensitivity_y;
+    core_mouse_hack_t mouse_hack_profile;
     struct {
         unsigned int count;
         char **names;
@@ -42,6 +47,15 @@ bool Profile_Load(const char *path)
     initable_t *dirs = ini_get_table(&g_profile.ini, "dirs");
     if (!ini_to_str(ini_get(dirs, "save"), g_profile.save, sizeof(g_profile.save), false)) return SDL_SetError("missing field \"dirs.save\" in profile \"%s\"", path);
     if (!ini_to_str(ini_get(dirs, "system"), g_profile.system, sizeof(g_profile.system), false)) return SDL_SetError("missing field \"dirs.system\" in profile \"%s\"", path);
+
+    initable_t *input = ini_get_table(&g_profile.ini, "input");
+    if (!(g_profile.mouse_sensitivity_x = ini_as_num(ini_get(input, "mouse_sensitivity_x")))) return SDL_SetError("missing or zeroed field \"input.mouse_sensitivity_x\" in profile \"%s\"", path);
+    if (!(g_profile.mouse_sensitivity_y = ini_as_num(ini_get(input, "mouse_sensitivity_y")))) return SDL_SetError("missing or zeroed field \"input.mouse_sensitivity_y\" in profile \"%s\"", path);
+    char profile_name[256];
+    if (!ini_to_str(ini_get(input, "mouse_hack_for"), profile_name, sizeof(profile_name), false)) return SDL_SetError("missing field \"input.mouse_hack_for\" in profile \"%s\"", path);
+    if      (SDL_strcmp(profile_name, "ac1") == 0) g_profile.mouse_hack_profile = CORE_MOUSE_HACK_AC1;
+    else if (SDL_strcmp(profile_name, "acpp") == 0) g_profile.mouse_hack_profile = CORE_MOUSE_HACK_AC_PROJECT_PHANTASMA;
+    else return SDL_SetError("field \"input.mouse_hack_for\" has invalid value of \"%s\" (only \"ac1\" and \"acpp\" are allowed)", profile_name);
 
     g_profile.fullscreen = ini_as_bool(ini_get(general, "fullscreen"));
 
@@ -92,6 +106,24 @@ bool Profile_IsFullscreen(void)
 {
     SDL_assert_release(ini_is_valid(&g_profile.ini));
     return g_profile.fullscreen;
+}
+
+float Profile_GetMouseSensitivityX(void)
+{
+    SDL_assert_release(ini_is_valid(&g_profile.ini));
+    return g_profile.mouse_sensitivity_x;
+}
+
+float Profile_GetMouseSensitivityY(void)
+{
+    SDL_assert_release(ini_is_valid(&g_profile.ini));
+    return g_profile.mouse_sensitivity_y;
+}
+
+core_mouse_hack_t Profile_GetMouseHackProfile(void)
+{
+    SDL_assert_release(ini_is_valid(&g_profile.ini));
+    return g_profile.mouse_hack_profile;
 }
 
 unsigned int Profile_GetVarCount(void)
