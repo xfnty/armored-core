@@ -6,6 +6,8 @@ if "%dist%"=="" set "debug=1"
 if "%debug%"=="1" if "%dist%"=="1" (echo Can not build both "debug" and "dist" at once. && exit /b 1)
 if "%debug%"=="1" set "config=debug"
 if "%dist%"=="1" set "config=dist"
+if "%run%"=="1" set "args=%2"
+if "%dist%"=="1" if "%run%"=="1" set "args=%3"
 
 set "deps_dir=%~dp0out\tmp\deps\"
 set "out=%~dp0out\%config%\"
@@ -14,7 +16,7 @@ set "src=%~dp0src"
 
 call :SetupDeps || (echo Failed to setup dependencies. && exit /b 1)
 call :Build || (echo Build failed. && exit /b 1)
-if "%run%"=="1" call :Run %2 || exit /b 1
+if "%run%"=="1" call :Run %args% || exit /b 1
 exit /b 0
 
 :SetupDeps
