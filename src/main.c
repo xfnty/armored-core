@@ -10,7 +10,7 @@
 #include "core.h"
 #include "profile.h"
 
-#define FPS_DISPLAY_UPDATE_INTERVAL 0.5f
+#define FPS_DISPLAY_UPDATE_PERIOD 0.5f
 
 static struct {
     SDL_Window *window;
@@ -18,6 +18,7 @@ static struct {
     Uint64 frame_time_acc;
     Uint64 frame_acc_count;
     Uint64 last_fps_update_time;
+    Uint64 last_autosave_time;
 } g_app;
 
 static bool ApplyProfile(void);
@@ -59,13 +60,14 @@ SDL_AppResult SDL_AppIterate(void *userdata)
 {
     if (!(SDL_GetWindowFlags(g_app.window) & SDL_WINDOW_INPUT_FOCUS))
     {
-        g_app.last_fps_update_time = SDL_GetTicks() - FPS_DISPLAY_UPDATE_INTERVAL * 1000;
+        g_app.last_fps_update_time = SDL_GetTicks() - FPS_DISPLAY_UPDATE_PERIOD * 1000;
         g_app.frame_time_acc = 0;
         g_app.frame_acc_count = 0;
         return SDL_APP_CONTINUE;
     }
 
     Uint64 tick = SDL_GetTicks();
+
     if ((tick - g_app.last_frame_tick) / 1000.0 >= 1 / Core_GetTargetFPS())
     {
         if (SDL_GetWindowRelativeMouseMode(g_app.window))
@@ -82,7 +84,7 @@ SDL_AppResult SDL_AppIterate(void *userdata)
         g_app.frame_acc_count++;
     }
 
-    if (tick - g_app.last_fps_update_time >= FPS_DISPLAY_UPDATE_INTERVAL * 1000)
+    if (tick - g_app.last_fps_update_time >= FPS_DISPLAY_UPDATE_PERIOD * 1000)
     {
         float ms = g_app.frame_time_acc / (float)g_app.frame_acc_count;
         char b[128];
@@ -91,6 +93,14 @@ SDL_AppResult SDL_AppIterate(void *userdata)
         g_app.last_fps_update_time = tick;
         g_app.frame_time_acc = 0;
         g_app.frame_acc_count = 0;
+    }
+
+    if (tick - g_app.last_autosave_time >= Profile_GetAutosavePeriod() * 1000)
+    {
+        if (!Core_SaveState(Profile_GetAutosavePath()))
+            SDL_Log("autosave failed, retrying after %.0f seconds", Profile_GetAutosavePeriod());
+
+        g_app.last_autosave_time = tick;
     }
 
     return SDL_APP_CONTINUE;

@@ -18,6 +18,7 @@ static struct {
     float mouse_sensitivity_x;
     float mouse_sensitivity_y;
     core_mouse_hack_t mouse_hack_profile;
+    float autosave_period;
     struct {
         unsigned int count;
         char **names;
@@ -44,6 +45,7 @@ bool Profile_Load(const char *path)
     initable_t *general = ini_get_table(&g_profile.ini, "general");
     if (!ini_to_str(ini_get(general, "core"), g_profile.core, sizeof(g_profile.core), false)) return SDL_SetError("missing field \"general.core\" in profile \"%s\"", path);
     if (!ini_to_str(ini_get(general, "game"), g_profile.game, sizeof(g_profile.game), false)) return SDL_SetError("missing field \"general.game\" in profile \"%s\"", path);
+    if (!(g_profile.autosave_period = ini_as_num(ini_get(general, "autosave_period")))) return SDL_SetError("missing or zeroed field \"general.autosave_period\" in profile \"%s\"", path);
 
     initable_t *paths = ini_get_table(&g_profile.ini, "paths");
     if (!ini_to_str(ini_get(paths, "save"), g_profile.save, sizeof(g_profile.save), false)) return SDL_SetError("missing field \"paths.save\" in profile \"%s\"", path);
@@ -132,6 +134,12 @@ core_mouse_hack_t Profile_GetMouseHackProfile(void)
 {
     SDL_assert_release(ini_is_valid(&g_profile.ini));
     return g_profile.mouse_hack_profile;
+}
+
+float Profile_GetAutosavePeriod(void)
+{
+    SDL_assert_release(ini_is_valid(&g_profile.ini));
+    return g_profile.autosave_period;
 }
 
 unsigned int Profile_GetVarCount(void)

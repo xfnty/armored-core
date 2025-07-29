@@ -16,6 +16,7 @@ bool              Profile_IsFullscreen(void);
 float             Profile_GetMouseSensitivityX(void);
 float             Profile_GetMouseSensitivityY(void);
 core_mouse_hack_t Profile_GetMouseHackProfile(void);
+float             Profile_GetAutosavePeriod(void);
 
 unsigned int Profile_GetVarCount(void);
 const char  *Profile_GetVarName(unsigned int idx);
