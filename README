@@ -8,14 +8,14 @@ and a configuration file.
 
 You can get SwanStation source code from here:
 
-    https://github.com/libretro/swanstation)
+    https://github.com/libretro/swanstation
 
 and compile it yourself or download precompiled DLL:
 
     https://github.com/xfnty/armored-core/releases/download/deps/swanstation_libretro.dll
 
-Game ROM is a file supported by SwanStation like "Armored Core (USA).chd". Note that Japanese 
-version is not supported.
+Game ROM is a file supported by SwanStation like "Armored Core (USA).chd".
+Note that Japanese version is not supported.
 
 PlayStation BIOS that was used during development was SCPH1001.bin.
 
