@@ -57,9 +57,10 @@ bool Profile_Load(const char *path)
     if (!(g_profile.mouse_sensitivity_y = ini_as_num(ini_get(input, "mouse_sensitivity_y")))) return SDL_SetError("missing or zeroed field \"input.mouse_sensitivity_y\" in profile \"%s\"", path);
     char profile_name[256];
     if (!ini_to_str(ini_get(input, "mouse_hack_for"), profile_name, sizeof(profile_name), false)) return SDL_SetError("missing field \"input.mouse_hack_for\" in profile \"%s\"", path);
-    if      (SDL_strcmp(profile_name, "ac1") == 0) g_profile.mouse_hack_profile = CORE_MOUSE_HACK_AC1;
+    if      (SDL_strcmp(profile_name, "ac") == 0) g_profile.mouse_hack_profile = CORE_MOUSE_HACK_AC;
     else if (SDL_strcmp(profile_name, "acpp") == 0) g_profile.mouse_hack_profile = CORE_MOUSE_HACK_AC_PROJECT_PHANTASMA;
-    else return SDL_SetError("field \"input.mouse_hack_for\" has invalid value of \"%s\" (only \"ac1\" and \"acpp\" are allowed)", profile_name);
+    else if (SDL_strcmp(profile_name, "acmoa") == 0) g_profile.mouse_hack_profile = CORE_MOUSE_HACK_AC_MASTER_OF_ARENA;
+    else return SDL_SetError("field \"input.mouse_hack_for\" has invalid value of \"%s\" (only \"ac\", \"acpp\" and \"acmoa\" are allowed)", profile_name);
 
     g_profile.fullscreen = ini_as_bool(ini_get(general, "fullscreen"));
 

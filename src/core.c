@@ -227,22 +227,38 @@ void Core_SetMouseMove(float rx, float ry)
     SDL_assert_release(core_memory_size = g_core.api.retro_get_memory_size(RETRO_MEMORY_SYSTEM_RAM));
     SDL_assert_release(core_memory = g_core.api.retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM));
 
-    if (g_core.mouse_hack_profile == CORE_MOUSE_HACK_AC1)
+    if (g_core.mouse_hack_profile == CORE_MOUSE_HACK_AC)
     {
+        // https://github.com/garungorp/MouseInjectorDolphinDuck/blob/master/games/ps1_acore.c
+        if      (!(*(uint16_t*)(core_memory + 0x1AC80C))) return;
+        else if (!(*(uint16_t*)(core_memory + 0x39AD4))) return;
+        else if (core_memory[0x14C82B]) return;
+        else if (core_memory[0x1FE06E] == 0x1A) return;
         *(uint16_t*)(core_memory + 0x1A26CA) -= rx;
         *(uint16_t*)(core_memory + 0x411C0) += ry;
     }
     else if (g_core.mouse_hack_profile == CORE_MOUSE_HACK_AC_PROJECT_PHANTASMA)
     {
-        if (*(uint32_t*)(core_memory + 0x1D1D20) == 0x801D1CC8)
-        {
-            *(uint16_t*)(core_memory + 0x1D1D32) -= rx;
-        }
-        else
-        {
-            *(uint16_t*)(core_memory + 0x1E2DF2) -= rx;
-        }
+        // https://github.com/garungorp/MouseInjectorDolphinDuck/blob/master/games/ps1_acorepp.c
+        bool is_arena = *(uint32_t*)(core_memory + 0x1D1D20) == 0x801D1CC8;
+        if      (!core_memory[0x1A7FAC] && !is_arena) return;
+        else if (!core_memory[0x3BA14]) return;
+        else if (core_memory[0x1555EB] && !is_arena) return;
+
+        uint32_t camera_x_offset = (is_arena) ? (0x1D1D32) : (0x1E2DF2);
+        *(uint16_t*)(core_memory + camera_x_offset) -= rx;
         *(uint16_t*)(core_memory + 0x42708) += ry;
+    }
+    else if (g_core.mouse_hack_profile == CORE_MOUSE_HACK_AC_MASTER_OF_ARENA)
+    {
+        // https://github.com/GoldenLumia/MouseInjectorDolphinDuck/blob/master/games%2Fps1_acoremoa.c
+        bool is_arena = *(uint32_t*)(core_memory + 0x1D8C70) == 0x801A6E80;
+        if      (!core_memory[0x1BA72C] && !is_arena) return;
+        else if (!core_memory[0x3E720]) return;
+
+        uint32_t camera_x_offset = (is_arena) ? (0x1D8C1A) : (0x1E725A);
+        *(uint16_t*)(core_memory + camera_x_offset) -= rx;
+        *(uint16_t*)(core_memory + 0x453B0) += ry;
     }
 }
 

@@ -4,8 +4,9 @@
 
 typedef enum core_mouse_hack_t core_mouse_hack_t;
 enum core_mouse_hack_t {
-    CORE_MOUSE_HACK_AC1,
+    CORE_MOUSE_HACK_AC,
     CORE_MOUSE_HACK_AC_PROJECT_PHANTASMA,
+    CORE_MOUSE_HACK_AC_MASTER_OF_ARENA,
 };
 
 bool Core_Load(const char *path);
