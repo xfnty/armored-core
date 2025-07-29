@@ -1,0 +1,53 @@
+To build the executable run the following commands:
+
+    build deps (creates necessary directories and downloads SDL3 binaries)
+    build dist (compiles the executable using MSVC)
+
+To run the emulator frontend you will need SwanStation Libretro core, game ROM, PlayStation BIOS 
+and a configuration file.
+
+You can get SwanStation source code from here:
+
+    https://github.com/libretro/swanstation)
+
+and compile it yourself or download precompiled DLL:
+
+    https://github.com/xfnty/armored-core/releases/download/deps/swanstation_libretro.dll
+
+Game ROM is a file supported by SwanStation like "Armored Core (USA).chd". Note that Japanese 
+version is not supported.
+
+PlayStation BIOS that was used during development was SCPH1001.bin.
+
+And finally the configuration file is a simple INI file that specifies paths to necessary files and 
+a few input settings. A sample configuration can be downloaded from here:
+
+    https://github.com/xfnty/armored-core/releases/download/deps/sample.cfg
+
+Remember to create "save" and "system" directories and put BIOS file into the latter.
+
+Change "game" and "core" fields to paths to game ROM and Libretro core. Set field "mouse_hack_for" 
+to "ac" if you're playing Armored Core 1, "acpp" for AC: Project Phantasma and "acmoa" for Master 
+of Arena.
+
+To run the game drag the config file onto the "emu.exe" or create a shortcut and add the config name
+as the first startup argument in "Target" field outside of quotes. 
+
+Icons for shortcuts can also be found in dependency release on GitHub:
+
+    Armored Core 1: https://github.com/xfnty/armored-core/releases/download/deps/ac1.ico
+    Project Phantasma: https://github.com/xfnty/armored-core/releases/download/deps/acpp.ico
+    Master of Arena: https://github.com/xfnty/armored-core/releases/download/deps/acmoa.ico
+
+Note that Master of Arena requires multi-disc support which is not currently implemented.
+Replays are also broken due to mouse hack overriding camera angle.
+
+If you see message "unhandled core command 65576" in program log which means that SwanStation failed
+to initialize OpenGL context and switched to software rendering which is not supported try to change
+graphics device that gets assigned to the app to a different one:
+
+    Settings -> System -> Graphics settings (at the bottom) -> Desktop app (choose "emu.exe")
+
+To know what graphics card was used look for a line similar to the following in the log:
+
+    configured OpenGL 3.3.0 - Build 20.19.15.5070 on Intel(R) HD Graphics 405 (1024x512)
