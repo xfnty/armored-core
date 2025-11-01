@@ -1,6 +1,7 @@
 #include "profile.h"
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_log.h>
 #include <SDL3/SDL_keycode.h>
 
 #define INI_IMPLEMENTATION
@@ -38,6 +39,8 @@ bool Profile_Load(const char *path)
     SDL_free(g_profile.vars.values);
     SDL_memset(&g_profile, 0, sizeof(g_profile));
     SDL_ClearError();
+
+    SDL_Log("Loading \"%s\"", path);
 
     g_profile.ini = ini_parse(path, NULL);
     if (!ini_is_valid(&g_profile.ini)) return SDL_SetError("failed to load profile \"%s\"", path);

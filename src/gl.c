@@ -57,7 +57,7 @@ void Gl_Init(SDL_Window *window)
     g_gl_window = window;
 
     SDL_SharedObject *renderdoc_so = SDL_LoadObject("renderdoc.dll");
-    if (!renderdoc_so)
+    if (renderdoc_so)
     {
         pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)SDL_LoadFunction(renderdoc_so, "RENDERDOC_GetAPI");
         if (!RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_6_0, (void **)&g_gl.renderdoc))

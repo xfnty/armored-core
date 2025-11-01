@@ -39,7 +39,7 @@ xcopy /y %deps_dir%sdl\SDL3-3.2.18\lib\x64\SDL3.dll %out% 1> nul
 exit /b 0
 
 :Run
-%out%emu.exe %*
+start /b /wait /d %out% %out%emu.exe %*
 if not !ERRORLEVEL!==0 (
     echo Failed with code !ERRORLEVEL!.
     exit /b 1
